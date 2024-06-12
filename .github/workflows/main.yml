@@ -1,0 +1,39 @@
+name: Deploy
+
+on: 
+  push:
+    branches:
+      - main
+      
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SFDC_USERNAME: ${{ secrets.SFDC_USERNAME }}    
+      SFDC_LOGIN_URL: ${{ secrets.SFDC_LOGIN_URL_SANDBOX }}  
+      ORG_ALIAS: ${{ secrets.ORG_ALIAS }}
+      CONNECTED_APP_CONSUMER_KEY: ${{ secrets.CONNECTED_APP_CONSUMER_KEY }}
+      
+      
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install sfdx-cli
+        run: npm install @salesforce/cli --global
+
+      - name: Install plugin
+        run: sfdx plugins --core
+
+      - name: Authorize Hub Org
+        run: |
+          sfdx force:auth:jwt:grant -r "$SFDC_LOGIN_URL" --username "$SFDC_USERNAME" -s -d -a "$ORG_ALIAS" -i "$CONNECTED_APP_CONSUMER_KEY" -f  salesforce-keys/server.key
+      
+      - name: Push To Org
+        run: sfdx force:source:deploy -p force-app
